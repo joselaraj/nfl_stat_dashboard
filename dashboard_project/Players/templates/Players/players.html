@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Players</title>
+	{% load static %}
+	<link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+
+	<div class="nav-bar">
+		<nav>
+			<ul>
+				<li><a href="{% url 'homepage_view' %}">Home</a></li>
+				<li><a href="{% url 'players_view' %}">Players</a></li>
+				<li><a href="#">Teams</a></li>
+				<li><a href="#">Fantasy Leaders</a></li>
+			</ul>
+		</nav>
+	</div>
+
+	<div class="main-container">
+		<div class="about-box">
+			<h1>Players</h1>
+			<p>Player list will appear here.</p>
+		</div>
+	</div>
+
+</body>
+</html>
