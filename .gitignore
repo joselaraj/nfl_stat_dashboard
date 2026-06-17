@@ -5,5 +5,9 @@ __pycache__/
 *.sqlite3
 node_modules/
 dashboard_project/frontend/node_modules/
+<<<<<<< HEAD
 .env/
 .venv/
+=======
+.env
+>>>>>>> 3ccc0f3 (Remove .DS_Store and add .gitignore)
