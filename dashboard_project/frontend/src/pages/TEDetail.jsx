@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import {
   BarChart, Bar, LineChart, Line, ScatterChart, Scatter,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, ReferenceLine,
 } from "recharts";
 import "../styles/TEs.css";
