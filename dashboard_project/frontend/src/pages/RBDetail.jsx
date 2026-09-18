@@ -1,25 +1,23 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
+import api from "../api";
 import {
   BarChart, Bar, LineChart, Line, ScatterChart, Scatter,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, ReferenceLine,
 } from "recharts";
 import "../styles/RBs.css";
 
-// ── palette ─────────────────────────────────────────────────────────────────
 const C = {
-  rush:    "#00adb5",   // teal  — rushing
-  recv:    "#ffb703",   // gold  — receiving
-  td:      "#2dc653",   // green — touchdowns
-  fumble:  "#e63946",   // red   — fumbles / risk
-  epa:     "#8ecae6",   // blue  — EPA
-  wopr:    "#c77dff",   // purple — WOPR / target share
+  rush:    "#00adb5",
+  recv:    "#ffb703",
+  td:      "#2dc653",
+  fumble:  "#e63946",
+  epa:     "#8ecae6",
+  wopr:    "#c77dff",
   muted:   "#5e6975",
 };
 
-// ── helpers ──────────────────────────────────────────────────────────────────
 const fmt = (n, dec = 0) =>
   n == null ? "—" : Number(n).toLocaleString(undefined, {
     minimumFractionDigits: dec, maximumFractionDigits: dec,
@@ -49,7 +47,6 @@ function ChartTooltip({ active, payload, label }) {
   );
 }
 
-// ── main component ───────────────────────────────────────────────────────────
 function RBDetail() {
   const { player_id } = useParams();
   const navigate = useNavigate();
@@ -61,8 +58,8 @@ function RBDetail() {
   useEffect(() => {
     if (!player_id) return;
     setLoading(true);
-    axios
-      .get(`http://127.0.0.1:8000/api/rbs/${encodeURIComponent(player_id)}/detail/`)
+    api
+      .get(`/api/rbs/${encodeURIComponent(player_id)}/detail/`)
       .then((res) => { setData(res.data); setError(null); })
       .catch((err) => { console.error(err); setError("Unable to load player details."); })
       .finally(() => setLoading(false));
@@ -72,7 +69,6 @@ function RBDetail() {
   if (error)   return <div className="loading">{error}</div>;
   if (!data)   return <div className="loading">Player not found.</div>;
 
-  // ── derived chart data ───────────────────────────────────────────────────
   const chartData = [...data.seasons]
     .sort((a, b) => a.season - b.season)
     .map((s) => {
@@ -93,14 +89,12 @@ function RBDetail() {
         season:          String(s.season),
         team:            s.team,
         games_played:    gp,
-        // rushing
         carries,
         rushing_yards:   rushYds,
         rushing_tds:     rushTds,
         ypc:             carries > 0 ? parseFloat((rushYds / carries).toFixed(2)) : 0,
         rush_fd_rate:    carries > 0 ? parseFloat(((rushFirstDowns / carries) * 100).toFixed(1)) : 0,
         rushing_epa:     s.rushing_epa != null ? parseFloat(Number(s.rushing_epa).toFixed(3)) : null,
-        // receiving
         targets,
         receptions,
         receiving_yards: recvYds,
@@ -108,15 +102,12 @@ function RBDetail() {
         yac,
         air_yards:       parseFloat((recvYds - yac).toFixed(1)),
         catch_rate:      targets > 0 ? parseFloat(((receptions / targets) * 100).toFixed(1)) : 0,
-        // efficiency
         target_share:    s.target_share != null ? parseFloat((Number(s.target_share) * 100).toFixed(1)) : null,
         wopr:            s.wopr != null ? parseFloat(Number(s.wopr).toFixed(3)) : null,
-        // combined
         total_yards:     rushYds + recvYds,
         total_tds:       rushTds + recvTds,
         fumbles_lost:    fumbleLost,
         total_touches:   totalTouches,
-        // per game
         yards_per_game:  parseFloat(((rushYds + recvYds) / gp).toFixed(1)),
         fantasy_pts:     Number(s.fantasy_points || 0),
         fantasy_per_game: parseFloat((Number(s.fantasy_points || 0) / gp).toFixed(1)),
@@ -127,10 +118,8 @@ function RBDetail() {
   const teams = [...new Set(data.seasons.map((s) => s.team).filter(Boolean))];
 
   const careerTouches = (career.carries || 0) + (career.receptions || 0);
-  const careerRushYPC = career.carries > 0
-    ? (career.rushing_yards / career.carries).toFixed(2) : "—";
-  const careerCatchRate = career.targets > 0
-    ? ((career.receptions / career.targets) * 100).toFixed(1) + "%" : "—";
+  const careerRushYPC = career.carries > 0 ? (career.rushing_yards / career.carries).toFixed(2) : "—";
+  const careerCatchRate = career.targets > 0 ? ((career.receptions / career.targets) * 100).toFixed(1) + "%" : "—";
 
   const careerCards = [
     { label: "Rush yards",   value: fmt(career.rushing_yards),   sub: `${fmt(career.carries)} car · ${careerRushYPC} YPC` },
@@ -142,15 +131,11 @@ function RBDetail() {
   ];
 
   const tabs = ["charts", "table"];
-
-  // ── rushing epa — filter nulls for the line chart
   const epaData = chartData.filter((d) => d.rushing_epa != null);
   const woprData = chartData.filter((d) => d.wopr != null || d.target_share != null);
 
   return (
     <div className="rbs-container">
-
-      {/* ── header ── */}
       <div className="qbs-header">
         <button className="back-btn" onClick={() => navigate(-1)}>← Back</button>
         <div className="player-identity">
@@ -172,12 +157,10 @@ function RBDetail() {
         </div>
       </div>
 
-      {/* ── career stat cards ── */}
       <div className="stat-card-grid">
         {careerCards.map((c) => <StatCard key={c.label} {...c} />)}
       </div>
 
-      {/* ── tabs ── */}
       <div className="tab-row">
         {tabs.map((t) => (
           <button
@@ -190,11 +173,8 @@ function RBDetail() {
         ))}
       </div>
 
-      {/* ── charts tab ── */}
       {activeTab === "charts" && (
         <div className="chart-grid">
-
-          {/* 1 — rushing vs receiving yards stacked bar */}
           <div className="chart-card chart-card--wide">
             <h3>Rushing vs receiving yards</h3>
             <ResponsiveContainer width="100%" height={240}>
@@ -203,14 +183,12 @@ function RBDetail() {
                 <XAxis dataKey="season" tick={{ fontSize: 12, fill: C.muted }} />
                 <YAxis tick={{ fontSize: 11, fill: C.muted }} tickFormatter={(v) => v.toLocaleString()} />
                 <Tooltip content={<ChartTooltip />} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="rushing_yards"   name="Rush yds" stackId="a" fill={C.rush}  />
                 <Bar dataKey="receiving_yards" name="Rec yds"  stackId="a" fill={C.recv} radius={[3,3,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* 2 — carries vs targets (touch share) */}
           <div className="chart-card">
             <h3>Carries vs targets</h3>
             <ResponsiveContainer width="100%" height={220}>
@@ -219,14 +197,12 @@ function RBDetail() {
                 <XAxis dataKey="season" tick={{ fontSize: 12, fill: C.muted }} />
                 <YAxis tick={{ fontSize: 11, fill: C.muted }} allowDecimals={false} />
                 <Tooltip content={<ChartTooltip />} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="carries" name="Carries" fill={C.rush} radius={[3,3,0,0]} />
                 <Bar dataKey="targets" name="Targets" fill={C.recv} radius={[3,3,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* 3 — yards per carry trend */}
           <div className="chart-card">
             <h3>Yards per carry</h3>
             <ResponsiveContainer width="100%" height={220}>
@@ -235,16 +211,12 @@ function RBDetail() {
                 <XAxis dataKey="season" tick={{ fontSize: 12, fill: C.muted }} />
                 <YAxis domain={[2, 7]} tick={{ fontSize: 11, fill: C.muted }} />
                 <Tooltip content={<ChartTooltip />} />
-                <ReferenceLine y={4.2} stroke={C.muted} strokeDasharray="4 4"
-                  label={{ value: "avg 4.2", fill: C.muted, fontSize: 11 }} />
-                <Line type="monotone" dataKey="ypc" name="YPC"
-                  stroke={C.rush} strokeWidth={2.5}
-                  dot={{ r: 4, fill: C.rush }} activeDot={{ r: 6 }} />
+                <ReferenceLine y={4.2} stroke={C.muted} strokeDasharray="4 4" label={{ value: "avg 4.2", fill: C.muted, fontSize: 11 }} />
+                <Line type="monotone" dataKey="ypc" name="YPC" stroke={C.rush} strokeWidth={2.5} dot={{ r: 4, fill: C.rush }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* 4 — TDs breakdown */}
           <div className="chart-card">
             <h3>Touchdowns by type</h3>
             <ResponsiveContainer width="100%" height={220}>
@@ -253,14 +225,12 @@ function RBDetail() {
                 <XAxis dataKey="season" tick={{ fontSize: 12, fill: C.muted }} />
                 <YAxis tick={{ fontSize: 11, fill: C.muted }} allowDecimals={false} />
                 <Tooltip content={<ChartTooltip />} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="rushing_tds"   name="Rush TD" fill={C.rush} radius={[3,3,0,0]} />
                 <Bar dataKey="receiving_tds" name="Rec TD"  fill={C.recv} radius={[3,3,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* 5 — YAC vs air yards (receiving role breakdown) */}
           <div className="chart-card">
             <h3>Receiving: YAC vs air yards</h3>
             <ResponsiveContainer width="100%" height={220}>
@@ -269,50 +239,33 @@ function RBDetail() {
                 <XAxis dataKey="season" tick={{ fontSize: 12, fill: C.muted }} />
                 <YAxis tick={{ fontSize: 11, fill: C.muted }} tickFormatter={(v) => v.toLocaleString()} />
                 <Tooltip content={<ChartTooltip />} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="yac"       name="YAC"       stackId="b" fill={C.recv} />
                 <Bar dataKey="air_yards" name="Air yards" stackId="b" fill={C.epa} radius={[3,3,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* 6 — fumbles lost vs total touches (ball security) */}
           <div className="chart-card">
             <h3>Ball security: fumbles lost</h3>
             <ResponsiveContainer width="100%" height={220}>
               <ScatterChart margin={{ top: 12, right: 24, bottom: 24, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2a2f36" />
-                <XAxis
-                  dataKey="total_touches" name="Touches" type="number"
-                  domain={["auto", "auto"]}
-                  tick={{ fontSize: 11, fill: C.muted }}
-                  label={{ value: "Total touches", position: "insideBottom", offset: -12, fill: C.muted, fontSize: 11 }}
-                />
-                <YAxis
-                  dataKey="fumbles_lost" name="Fum lost" type="number"
-                  domain={[0, "auto"]}
-                  tick={{ fontSize: 11, fill: C.muted }}
-                  allowDecimals={false}
-                  label={{ value: "Fum lost", angle: -90, position: "insideLeft", fill: C.muted, fontSize: 11 }}
-                />
-                <Tooltip
-                  cursor={{ strokeDasharray: "3 3" }}
-                  content={({ active, payload }) => {
-                    if (!active || !payload?.length) return null;
-                    const d = payload[0].payload;
-                    return (
-                      <div className="chart-tooltip">
-                        <p className="tooltip-label">{d.season} · {d.team}</p>
-                        <p style={{ fontSize: 12, margin: "2px 0" }}>Touches: <strong>{d.total_touches}</strong></p>
-                        <p style={{ fontSize: 12, margin: "2px 0", color: C.fumble }}>Fum lost: <strong>{d.fumbles_lost}</strong></p>
-                      </div>
-                    );
-                  }}
-                />
+                <XAxis dataKey="total_touches" name="Touches" type="number" domain={["auto", "auto"]} tick={{ fontSize: 11, fill: C.muted }} label={{ value: "Total touches", position: "insideBottom", offset: -12, fill: C.muted, fontSize: 11 }} />
+                <YAxis dataKey="fumbles_lost" name="Fum lost" type="number" domain={[0, "auto"]} tick={{ fontSize: 11, fill: C.muted }} allowDecimals={false} label={{ value: "Fum lost", angle: -90, position: "insideLeft", fill: C.muted, fontSize: 11 }} />
+                <Tooltip content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null;
+                  const d = payload[0].payload;
+                  return (
+                    <div className="chart-tooltip">
+                      <p className="tooltip-label">{d.season} · {d.team}</p>
+                      <p style={{ fontSize: 12, margin: "2px 0" }}>Touches: <strong>{d.total_touches}</strong></p>
+                      <p style={{ fontSize: 12, margin: "2px 0", color: C.fumble }}>Fum lost: <strong>{d.fumbles_lost}</strong></p>
+                    </div>
+                  );
+                }} />
                 <Scatter data={chartData} name="Season">
                   {chartData.map((entry) => (
-                    <Cell key={entry.season}
-                      fill={entry.fumbles_lost > 1 ? C.fumble : C.rush} />
+                    <Cell key={entry.season} fill={entry.fumbles_lost > 1 ? C.fumble : C.rush} />
                   ))}
                 </Scatter>
               </ScatterChart>
@@ -320,7 +273,6 @@ function RBDetail() {
             <p className="chart-note">Red = 2+ fumbles lost that season.</p>
           </div>
 
-          {/* 7 — rushing EPA trend (only if data available) */}
           {epaData.length > 0 && (
             <div className="chart-card">
               <h3>Rushing EPA per season</h3>
@@ -331,16 +283,13 @@ function RBDetail() {
                   <YAxis tick={{ fontSize: 11, fill: C.muted }} />
                   <Tooltip content={<ChartTooltip />} />
                   <ReferenceLine y={0} stroke={C.muted} strokeDasharray="4 4" />
-                  <Line type="monotone" dataKey="rushing_epa" name="Rush EPA"
-                    stroke={C.epa} strokeWidth={2.5}
-                    dot={{ r: 4, fill: C.epa }} activeDot={{ r: 6 }} />
+                  <Line type="monotone" dataKey="rushing_epa" name="Rush EPA" stroke={C.epa} strokeWidth={2.5} dot={{ r: 4, fill: C.epa }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
               <p className="chart-note">Above zero = value added vs average. Below = value lost.</p>
             </div>
           )}
 
-          {/* 8 — WOPR / target share trend (only if data available) */}
           {woprData.length > 0 && (
             <div className="chart-card">
               <h3>Target share & WOPR</h3>
@@ -350,20 +299,14 @@ function RBDetail() {
                   <XAxis dataKey="season" tick={{ fontSize: 12, fill: C.muted }} />
                   <YAxis tick={{ fontSize: 11, fill: C.muted }} />
                   <Tooltip content={<ChartTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Line type="monotone" dataKey="target_share" name="Target share %"
-                    stroke={C.recv} strokeWidth={2.5}
-                    dot={{ r: 4, fill: C.recv }} activeDot={{ r: 6 }} />
-                  <Line type="monotone" dataKey="wopr" name="WOPR"
-                    stroke={C.wopr} strokeWidth={2.5} strokeDasharray="5 3"
-                    dot={{ r: 4, fill: C.wopr }} activeDot={{ r: 6 }} />
+                  <Bar dataKey="target_share" name="Target share %" fill={C.recv} />
+                  <Line type="monotone" dataKey="wopr" name="WOPR" stroke={C.wopr} strokeWidth={2.5} strokeDasharray="5 3" dot={{ r: 4, fill: C.wopr }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
               <p className="chart-note">Target share shown as %. WOPR combines target + air yards share.</p>
             </div>
           )}
 
-          {/* 9 — fantasy points per game trend */}
           <div className="chart-card">
             <h3>Fantasy points per game</h3>
             <ResponsiveContainer width="100%" height={220}>
@@ -372,17 +315,13 @@ function RBDetail() {
                 <XAxis dataKey="season" tick={{ fontSize: 12, fill: C.muted }} />
                 <YAxis tick={{ fontSize: 11, fill: C.muted }} />
                 <Tooltip content={<ChartTooltip />} />
-                <Line type="monotone" dataKey="fantasy_per_game" name="Fant pts/game"
-                  stroke={C.td} strokeWidth={2.5}
-                  dot={{ r: 4, fill: C.td }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="fantasy_per_game" name="Fant pts/game" stroke={C.td} strokeWidth={2.5} dot={{ r: 4, fill: C.td }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
-
         </div>
       )}
 
-      {/* ── season log tab ── */}
       {activeTab === "table" && (
         <div style={{ marginTop: "1rem" }}>
           <div className="table-wrapper">
@@ -409,9 +348,7 @@ function RBDetail() {
                     <td>{s.receptions}</td>
                     <td>{s.receiving_yards.toLocaleString()}</td>
                     <td>{s.receiving_tds}</td>
-                    <td style={{ color: s.fumbles_lost > 1 ? C.fumble : "inherit" }}>
-                      {s.fumbles_lost}
-                    </td>
+                    <td style={{ color: s.fumbles_lost > 1 ? C.fumble : "inherit" }}>{s.fumbles_lost}</td>
                     <td className="highlight">{s.fantasy_pts.toFixed(1)}</td>
                   </tr>
                 ))}
@@ -446,7 +383,6 @@ function RBDetail() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

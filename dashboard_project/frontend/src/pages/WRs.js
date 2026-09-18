@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api";
 import '../styles/WRs.css';
 
 function WRs() {
@@ -13,7 +13,7 @@ function WRs() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get(`http://127.0.0.1:8000/api/wrs/?season=${season}`)
+    api.get(`/api/wrs/?season=${season}`)
       .then(res => { setPlayers(res.data); setLoading(false); })
       .catch(err => { console.error(err); setLoading(false); });
   }, [season]);

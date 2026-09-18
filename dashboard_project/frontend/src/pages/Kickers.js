@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api";
 import '../styles/Kickers.css';
 
 function Ks() {
@@ -13,7 +13,7 @@ function Ks() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get(`http://127.0.0.1:8000/api/k/?season=${season}`)
+    api.get(`/api/k/?season=${season}`)
       .then(res => { setPlayers(res.data); setLoading(false); })
       .catch(err => { console.error(err); setLoading(false); });
   }, [season]);

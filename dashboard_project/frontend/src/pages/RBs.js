@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api";
 import '../styles/RBs.css';
 
 function RBs() {
@@ -13,7 +13,7 @@ function RBs() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get(`http://127.0.0.1:8000/api/rbs/?season=${season}`)
+    api.get(`/api/rbs/?season=${season}`)
       .then(res => { setPlayers(res.data); setLoading(false); })
       .catch(err => { console.error(err); setLoading(false); });
   }, [season]);

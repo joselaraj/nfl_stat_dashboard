@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
+import api from "../api";
 import {
   BarChart, Bar, LineChart, Line, ScatterChart, Scatter,
   XAxis, YAxis, CartesianGrid, Tooltip,
@@ -8,16 +8,14 @@ import {
 } from "recharts";
 import "../styles/WRs.css";
 
-// ── palette ──────────────────────────────────────────────────────────────────
 const C = {
-  rec:   "#00adb5",  // teal   — receptions / volume
-  td:    "#2dc653",  // green  — touchdowns
-  fpts:  "#ffb703",  // gold   — fantasy
-  ypr:   "#8ecae6",  // blue   — efficiency
+  rec:   "#00adb5",
+  td:    "#2dc653",
+  fpts:  "#ffb703",
+  ypr:   "#8ecae6",
   muted: "#5e6975",
 };
 
-// ── helpers ──────────────────────────────────────────────────────────────────
 const fmt = (n, dec = 0) =>
   n == null ? "—" : Number(n).toLocaleString(undefined, {
     minimumFractionDigits: dec, maximumFractionDigits: dec,
@@ -47,7 +45,6 @@ function ChartTooltip({ active, payload, label }) {
   );
 }
 
-// ── main component ────────────────────────────────────────────────────────────
 function WRDetail() {
   const { player_id } = useParams();
   const navigate = useNavigate();
@@ -59,8 +56,8 @@ function WRDetail() {
   useEffect(() => {
     if (!player_id) return;
     setLoading(true);
-    axios
-      .get(`http://127.0.0.1:8000/api/wrs/${encodeURIComponent(player_id)}/detail/`)
+    api
+      .get(`/api/wrs/${encodeURIComponent(player_id)}/detail/`)
       .then((res) => { setData(res.data); setError(null); })
       .catch((err) => { console.error(err); setError("Unable to load player details."); })
       .finally(() => setLoading(false));
@@ -70,7 +67,6 @@ function WRDetail() {
   if (error)   return <div className="loading">{error}</div>;
   if (!data)   return <div className="loading">Player not found.</div>;
 
-  // ── derived chart data ────────────────────────────────────────────────────
   const chartData = [...data.seasons]
     .sort((a, b) => a.season - b.season)
     .map((s) => {
@@ -97,22 +93,18 @@ function WRDetail() {
   const teams = [...new Set(data.seasons.map((s) => s.team).filter(Boolean))];
   const maxYards = Math.max(...chartData.map((d) => d.receiving_yards));
 
-  const careerYPR = career.receptions > 0
-    ? (career.receiving_yards / career.receptions).toFixed(1) : "—";
+  const careerYPR = career.receptions > 0 ? (career.receiving_yards / career.receptions).toFixed(1) : "—";
 
   const careerCards = [
     { label: "Rec yards",   value: fmt(career.receiving_yards),   sub: `${fmt(career.receptions)} receptions` },
     { label: "Rec TDs",     value: fmt(career.receiving_tds),     sub: "" },
     { label: "YPR",         value: careerYPR,                     sub: "yards per reception" },
     { label: "Games",       value: fmt(career.games_played),      sub: "" },
-    { label: "Fantasy pts", value: fmt(career.fantasy_points, 1),
-      sub: `${career.games_played > 0 ? (career.fantasy_points / career.games_played).toFixed(1) : "—"} / game` },
+    { label: "Fantasy pts", value: fmt(career.fantasy_points, 1), sub: `${career.games_played > 0 ? (career.fantasy_points / career.games_played).toFixed(1) : "—"} / game` },
   ];
 
   return (
     <div className="wrs-container">
-
-      {/* ── header ── */}
       <div className="qbs-header">
         <button className="back-btn" onClick={() => navigate(-1)}>← Back</button>
         <div className="player-identity">
@@ -134,12 +126,10 @@ function WRDetail() {
         </div>
       </div>
 
-      {/* ── career stat cards ── */}
       <div className="stat-card-grid">
         {careerCards.map((c) => <StatCard key={c.label} {...c} />)}
       </div>
 
-      {/* ── tabs ── */}
       <div className="tab-row">
         {["charts", "table"].map((t) => (
           <button
@@ -152,11 +142,8 @@ function WRDetail() {
         ))}
       </div>
 
-      {/* ── charts tab ── */}
       {activeTab === "charts" && (
         <div className="chart-grid">
-
-          {/* 1 — receiving yards bar, highlight career best */}
           <div className="chart-card chart-card--wide">
             <h3>Receiving yards by season</h3>
             <ResponsiveContainer width="100%" height={240}>
@@ -167,10 +154,7 @@ function WRDetail() {
                 <Tooltip content={<ChartTooltip />} />
                 <Bar dataKey="receiving_yards" name="Rec yards" radius={[3,3,0,0]}>
                   {chartData.map((entry) => (
-                    <Cell
-                      key={entry.season}
-                      fill={entry.receiving_yards === maxYards ? C.fpts : C.rec}
-                    />
+                    <Cell key={entry.season} fill={entry.receiving_yards === maxYards ? C.fpts : C.rec} />
                   ))}
                 </Bar>
               </BarChart>
@@ -178,7 +162,6 @@ function WRDetail() {
             <p className="chart-note">Gold bar = career-best season.</p>
           </div>
 
-          {/* 2 — receptions trend line */}
           <div className="chart-card">
             <h3>Receptions over time</h3>
             <ResponsiveContainer width="100%" height={220}>
@@ -187,14 +170,11 @@ function WRDetail() {
                 <XAxis dataKey="season" tick={{ fontSize: 12, fill: C.muted }} />
                 <YAxis tick={{ fontSize: 11, fill: C.muted }} allowDecimals={false} />
                 <Tooltip content={<ChartTooltip />} />
-                <Line type="monotone" dataKey="receptions" name="Receptions"
-                  stroke={C.rec} strokeWidth={2.5}
-                  dot={{ r: 4, fill: C.rec }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="receptions" name="Receptions" stroke={C.rec} strokeWidth={2.5} dot={{ r: 4, fill: C.rec }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* 3 — yards per reception */}
           <div className="chart-card">
             <h3>Yards per reception</h3>
             <ResponsiveContainer width="100%" height={220}>
@@ -203,16 +183,12 @@ function WRDetail() {
                 <XAxis dataKey="season" tick={{ fontSize: 12, fill: C.muted }} />
                 <YAxis tick={{ fontSize: 11, fill: C.muted }} />
                 <Tooltip content={<ChartTooltip />} />
-                <ReferenceLine y={12} stroke={C.muted} strokeDasharray="4 4"
-                  label={{ value: "avg 12", fill: C.muted, fontSize: 11 }} />
-                <Line type="monotone" dataKey="ypr" name="YPR"
-                  stroke={C.ypr} strokeWidth={2.5}
-                  dot={{ r: 4, fill: C.ypr }} activeDot={{ r: 6 }} />
+                <ReferenceLine y={12} stroke={C.muted} strokeDasharray="4 4" label={{ value: "avg 12", fill: C.muted, fontSize: 11 }} />
+                <Line type="monotone" dataKey="ypr" name="YPR" stroke={C.ypr} strokeWidth={2.5} dot={{ r: 4, fill: C.ypr }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* 4 — receiving TDs */}
           <div className="chart-card">
             <h3>Receiving TDs</h3>
             <ResponsiveContainer width="100%" height={220}>
@@ -226,7 +202,6 @@ function WRDetail() {
             </ResponsiveContainer>
           </div>
 
-          {/* 5 — fantasy points per game */}
           <div className="chart-card">
             <h3>Fantasy points per game</h3>
             <ResponsiveContainer width="100%" height={220}>
@@ -235,46 +210,30 @@ function WRDetail() {
                 <XAxis dataKey="season" tick={{ fontSize: 12, fill: C.muted }} />
                 <YAxis tick={{ fontSize: 11, fill: C.muted }} />
                 <Tooltip content={<ChartTooltip />} />
-                <Line type="monotone" dataKey="fantasy_per_game" name="Fant pts/game"
-                  stroke={C.fpts} strokeWidth={2.5}
-                  dot={{ r: 4, fill: C.fpts }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="fantasy_per_game" name="Fant pts/game" stroke={C.fpts} strokeWidth={2.5} dot={{ r: 4, fill: C.fpts }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* 6 — YPR vs yards/game scatter */}
           <div className="chart-card chart-card--wide">
             <h3>Efficiency vs volume: YPR vs yards per game</h3>
             <ResponsiveContainer width="100%" height={240}>
               <ScatterChart margin={{ top: 12, right: 24, bottom: 24, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2a2f36" />
-                <XAxis
-                  dataKey="yards_per_game" name="Yds/game" type="number"
-                  domain={["auto", "auto"]}
-                  tick={{ fontSize: 11, fill: C.muted }}
-                  label={{ value: "Yards per game", position: "insideBottom", offset: -12, fill: C.muted, fontSize: 11 }}
-                />
-                <YAxis
-                  dataKey="ypr" name="YPR" type="number"
-                  domain={["auto", "auto"]}
-                  tick={{ fontSize: 11, fill: C.muted }}
-                  label={{ value: "Yards / rec", angle: -90, position: "insideLeft", fill: C.muted, fontSize: 11 }}
-                />
-                <Tooltip
-                  cursor={{ strokeDasharray: "3 3" }}
-                  content={({ active, payload }) => {
-                    if (!active || !payload?.length) return null;
-                    const d = payload[0].payload;
-                    return (
-                      <div className="chart-tooltip">
-                        <p className="tooltip-label">{d.season} · {d.team}</p>
-                        <p style={{ fontSize: 12, margin: "2px 0" }}>Yds/game: <strong>{d.yards_per_game}</strong></p>
-                        <p style={{ fontSize: 12, margin: "2px 0" }}>YPR: <strong>{d.ypr}</strong></p>
-                        <p style={{ fontSize: 12, margin: "2px 0" }}>Rec yds: <strong>{d.receiving_yards.toLocaleString()}</strong></p>
-                      </div>
-                    );
-                  }}
-                />
+                <XAxis dataKey="yards_per_game" name="Yds/game" type="number" domain={["auto", "auto"]} tick={{ fontSize: 11, fill: C.muted }} label={{ value: "Yards per game", position: "insideBottom", offset: -12, fill: C.muted, fontSize: 11 }} />
+                <YAxis dataKey="ypr" name="YPR" type="number" domain={["auto", "auto"]} tick={{ fontSize: 11, fill: C.muted }} label={{ value: "Yards / rec", angle: -90, position: "insideLeft", fill: C.muted, fontSize: 11 }} />
+                <Tooltip cursor={{ strokeDasharray: "3 3" }} content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null;
+                  const d = payload[0].payload;
+                  return (
+                    <div className="chart-tooltip">
+                      <p className="tooltip-label">{d.season} · {d.team}</p>
+                      <p style={{ fontSize: 12, margin: "2px 0" }}>Yds/game: <strong>{d.yards_per_game}</strong></p>
+                      <p style={{ fontSize: 12, margin: "2px 0" }}>YPR: <strong>{d.ypr}</strong></p>
+                      <p style={{ fontSize: 12, margin: "2px 0" }}>Rec yds: <strong>{d.receiving_yards.toLocaleString()}</strong></p>
+                    </div>
+                  );
+                }} />
                 <Scatter data={chartData} name="Season">
                   {chartData.map((entry) => (
                     <Cell key={entry.season} fill={C.ypr} />
@@ -284,11 +243,9 @@ function WRDetail() {
             </ResponsiveContainer>
             <p className="chart-note">High YPR + high volume = elite season. Hover each dot for details.</p>
           </div>
-
         </div>
       )}
 
-      {/* ── season log tab ── */}
       {activeTab === "table" && (
         <div style={{ marginTop: "1rem" }}>
           <div className="table-wrapper">
@@ -342,7 +299,6 @@ function WRDetail() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

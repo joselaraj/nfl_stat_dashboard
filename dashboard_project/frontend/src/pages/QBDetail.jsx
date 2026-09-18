@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
+import api from "../api";
 import {
   LineChart, Line, BarChart, Bar, ScatterChart, Scatter,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import "../styles/QBs.css";
 
-// ── palette ────────────────────────────────────────────────────────────────
+// ── palette ────────────────────────────────────────────────────────────
 const C = {
   teal:   "#00adb5",
   gold:   "#ffb703",
@@ -18,7 +18,7 @@ const C = {
   muted:  "#5e6975",
 };
 
-// ── tiny helpers ────────────────────────────────────────────────────────────
+// ── tiny helpers ───────────────────────────────────────────────────────────
 const fmt = (n, dec = 0) =>
   n == null ? "—" : Number(n).toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
@@ -59,8 +59,8 @@ function QBDetail() {
   useEffect(() => {
     if (!player_id) return;
     setLoading(true);
-    axios
-      .get(`http://127.0.0.1:8000/api/qbs/${encodeURIComponent(player_id)}/detail/`)
+    api
+      .get(`/api/qbs/${encodeURIComponent(player_id)}/detail/`)
       .then((res) => { setData(res.data); setError(null); })
       .catch((err) => { console.error(err); setError("Unable to load player details."); })
       .finally(() => setLoading(false));
@@ -114,8 +114,6 @@ function QBDetail() {
 
   return (
     <div className="qbs-container">
-
-      {/* ── header ── */}
       <div className="qbs-header">
         <button className="back-btn" onClick={() => navigate(-1)}>← Back</button>
         <div className="player-identity">
@@ -139,14 +137,12 @@ function QBDetail() {
         </div>
       </div>
 
-      {/* ── career stat cards ── */}
       <div className="stat-card-grid">
         {careerCards.map((c) => (
           <StatCard key={c.label} {...c} />
         ))}
       </div>
 
-      {/* ── tabs ── */}
       <div className="tab-row">
         {tabs.map((t) => (
           <button
@@ -159,11 +155,8 @@ function QBDetail() {
         ))}
       </div>
 
-      {/* ── charts tab ── */}
       {activeTab === "charts" && (
         <div className="chart-grid">
-
-          {/* passing + rushing yards grouped bar */}
           <div className="chart-card">
             <h3>Yards by season</h3>
             <ResponsiveContainer width="100%" height={220}>
@@ -179,7 +172,6 @@ function QBDetail() {
             </ResponsiveContainer>
           </div>
 
-          {/* TDs vs INTs */}
           <div className="chart-card">
             <h3>TDs vs INTs</h3>
             <ResponsiveContainer width="100%" height={220}>
@@ -196,7 +188,6 @@ function QBDetail() {
             </ResponsiveContainer>
           </div>
 
-          {/* completion % + fantasy pts line */}
           <div className="chart-card">
             <h3>Completion % over time</h3>
             <ResponsiveContainer width="100%" height={220}>
@@ -206,20 +197,11 @@ function QBDetail() {
                 <YAxis domain={[50, 80]} unit="%" tick={{ fontSize: 11, fill: C.muted }} />
                 <Tooltip content={<ChartTooltip />} />
                 <ReferenceLine y={65} stroke={C.muted} strokeDasharray="4 4" label={{ value: "avg 65%", fill: C.muted, fontSize: 11 }} />
-                <Line
-                  type="monotone"
-                  dataKey="completion_pct"
-                  name="Comp %"
-                  stroke={C.teal}
-                  strokeWidth={2.5}
-                  dot={{ r: 4, fill: C.teal }}
-                  activeDot={{ r: 6 }}
-                />
+                <Line type="monotone" dataKey="completion_pct" name="Comp %" stroke={C.teal} strokeWidth={2.5} dot={{ r: 4, fill: C.teal }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* fantasy points line */}
           <div className="chart-card">
             <h3>Fantasy points over time</h3>
             <ResponsiveContainer width="100%" height={220}>
@@ -228,70 +210,41 @@ function QBDetail() {
                 <XAxis dataKey="season" tick={{ fontSize: 12, fill: C.muted }} />
                 <YAxis tick={{ fontSize: 11, fill: C.muted }} />
                 <Tooltip content={<ChartTooltip />} />
-                <Line
-                  type="monotone"
-                  dataKey="fantasy_pts"
-                  name="Fantasy pts"
-                  stroke={C.gold}
-                  strokeWidth={2.5}
-                  dot={{ r: 4, fill: C.gold }}
-                  activeDot={{ r: 6 }}
-                />
+                <Line type="monotone" dataKey="fantasy_pts" name="Fantasy pts" stroke={C.gold} strokeWidth={2.5} dot={{ r: 4, fill: C.gold }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* YPA vs TD rate scatter — each dot = one season */}
           <div className="chart-card chart-card--wide">
             <h3>Efficiency: YPA vs TD rate</h3>
             <ResponsiveContainer width="100%" height={240}>
               <ScatterChart margin={{ top: 16, right: 24, bottom: 16, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2a2f36" />
-                <XAxis
-                  dataKey="ypa"
-                  name="YPA"
-                  type="number"
-                  domain={["auto", "auto"]}
-                  tick={{ fontSize: 11, fill: C.muted }}
-                  label={{ value: "Yards per attempt", position: "insideBottom", offset: -8, fill: C.muted, fontSize: 11 }}
-                />
-                <YAxis
-                  dataKey="td_rate"
-                  name="TD rate"
-                  type="number"
-                  domain={["auto", "auto"]}
-                  tick={{ fontSize: 11, fill: C.muted }}
-                  label={{ value: "TD %", angle: -90, position: "insideLeft", fill: C.muted, fontSize: 11 }}
-                />
-                <Tooltip
-                  cursor={{ strokeDasharray: "3 3" }}
-                  content={({ active, payload }) => {
-                    if (!active || !payload?.length) return null;
-                    const d = payload[0].payload;
-                    return (
-                      <div className="chart-tooltip">
-                        <p className="tooltip-label">{d.season}</p>
-                        <p style={{ fontSize: 12, margin: "2px 0" }}>YPA: <strong>{d.ypa}</strong></p>
-                        <p style={{ fontSize: 12, margin: "2px 0" }}>TD%: <strong>{d.td_rate}%</strong></p>
-                      </div>
-                    );
-                  }}
-                />
+                <XAxis dataKey="ypa" name="YPA" type="number" domain={["auto", "auto"]} tick={{ fontSize: 11, fill: C.muted }} label={{ value: "Yards per attempt", position: "insideBottom", offset: -8, fill: C.muted, fontSize: 11 }} />
+                <YAxis dataKey="td_rate" name="TD rate" type="number" domain={["auto", "auto"]} tick={{ fontSize: 11, fill: C.muted }} label={{ value: "TD %", angle: -90, position: "insideLeft", fill: C.muted, fontSize: 11 }} />
+                <Tooltip cursor={{ strokeDasharray: "3 3" }} content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null;
+                  const d = payload[0].payload;
+                  return (
+                    <div className="chart-tooltip">
+                      <p className="tooltip-label">{d.season}</p>
+                      <p style={{ fontSize: 12, margin: "2px 0" }}>YPA: <strong>{d.ypa}</strong></p>
+                      <p style={{ fontSize: 12, margin: "2px 0" }}>TD%: <strong>{d.td_rate}%</strong></p>
+                    </div>
+                  );
+                }} />
                 <Scatter data={chartData} name="Season">
-                  {chartData.map((entry, i) => (
+                  {chartData.map((entry) => (
                     <Cell key={entry.season} fill={C.gold} />
                   ))}
                 </Scatter>
-                {/* season labels via custom dot — rendered as text near each point */}
               </ScatterChart>
             </ResponsiveContainer>
             <p className="chart-note">Each dot = one season. Hover for details.</p>
           </div>
-
         </div>
       )}
 
-      {/* ── season log tab ── */}
       {activeTab === "table" && (
         <div style={{ marginTop: "1rem" }}>
           <div className="table-wrapper">
@@ -360,7 +313,6 @@ function QBDetail() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

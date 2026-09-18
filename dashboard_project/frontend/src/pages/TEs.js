@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api";
 import '../styles/TEs.css';
 
 function TEs() {
@@ -13,7 +13,7 @@ function TEs() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get(`http://127.0.0.1:8000/api/tes/?season=${season}`)
+    api.get(`/api/tes/?season=${season}`)
       .then(res => { setPlayers(res.data); setLoading(false); })
       .catch(err => { console.error(err); setLoading(false); });
   }, [season]);
