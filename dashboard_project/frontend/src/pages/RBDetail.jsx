@@ -86,8 +86,7 @@ function RBDetail() {
       const yac            = Number(s.receiving_yards_after_catch || 0);
       const fumbleLost     = Number((s.rushing_fumbles_lost || 0) + (s.receiving_fumbles_lost || 0));
       const totalTouches   = carries + receptions;
-      const rushFirstDowns = Number(s.rushing_first_downs || 0);
-      const recvFirstDowns = Number(s.receiving_first_downs || 0);
+      const rushFirstDowns = Number(s.rushing_first_downs || 0)
       const gp             = Number(s.games_played || 1);
 
       return {
